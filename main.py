@@ -75,3 +75,30 @@ class RetrainRecord(CropPredictionRequest):
 
 class RetrainRequest(BaseModel):
     data: List[RetrainRecord] = Field(..., min_items=1, description="List of new agricultural records to update the regression model")
+
+# ---------------------------------------------------------
+# HELPER FUNCTIONS
+# ---------------------------------------------------------
+def preprocess_input(record: CropPredictionRequest) -> np.ndarray:
+    """Converts a raw JSON request into a Z-score scaled, one-hot encoded NumPy array matching training features."""
+    if feature_names is None or scaler is None:
+        raise HTTPException(status_code=500, detail="Model artifacts are not loaded on the server.")
+
+    df_template = pd.DataFrame(0.0, index=[0], columns=feature_names)
+
+    df_template.at[0, "Rainfall_mm"] = record.Rainfall_mm
+    df_template.at[0, "Temperature_Celsius"] = record.Temperature_Celsius
+    df_template.at[0, "Fertilizer_Used"] = float(record.Fertilizer_Used)
+    df_template.at[0, "Irrigation_Used"] = float(record.Irrigation_Used)
+    df_template.at[0, "Days_to_Harvest"] = record.Days_to_Harvest
+    categorical_mappings = {
+        f"Region_{record.Region}": 1.0,
+        f"Soil_Type_{record.Soil_Type}": 1.0,
+        f"Crop_{record.Crop}": 1.0,
+        f"Weather_Condition_{record.Weather_Condition}": 1.0
+    }
+
+    for col_name, val in categorical_mappings.items():
+        if col_name in df_template.columns:
+            df_template.at[0, col_name] = val
+    return scaler.transform(df_template.values)
