@@ -5,3 +5,5 @@ matplotlib
 seaborn
 notebook
 joblib
+fastapi
+uvicorn
