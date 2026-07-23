@@ -26,3 +26,18 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+# ---------------------------------------------------------
+# MODEL & PIPELINE LOADING
+# ---------------------------------------------------------
+MODEL_PATH = "best_crop_model.pkl"
+SCALER_PATH = "feature_scaler.pkl"
+FEATURES_PATH = "feature_names.pkl"
+
+try:
+    model = joblib.load(MODEL_PATH)
+    scaler = joblib.load(SCALER_PATH)
+    feature_names = joblib.load(FEATURES_PATH)
+    print("Successfully loaded ML artifacts into memory.")
+except FileNotFoundError:
+    print("Warning: ML artifact files not found. Please run training script or upload .pkl files.")
+    model, scaler, feature_names = None, None, None
