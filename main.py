@@ -70,3 +70,8 @@ class CropPredictionRequest(BaseModel):
                 "Weather_Condition": "Sunny"
             }
         }
+class RetrainRecord(CropPredictionRequest):
+    Yield_tons_per_hectare: float = Field(..., ge=0.0, le=30.0, description="Actual observed crop harvest yield in tons per hectare")
+
+class RetrainRequest(BaseModel):
+    data: List[RetrainRecord] = Field(..., min_items=1, description="List of new agricultural records to update the regression model")
