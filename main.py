@@ -102,3 +102,32 @@ def preprocess_input(record: CropPredictionRequest) -> np.ndarray:
         if col_name in df_template.columns:
             df_template.at[0, col_name] = val
     return scaler.transform(df_template.values)
+
+# ---------------------------------------------------------
+# API ENDPOINTS
+# ---------------------------------------------------------
+@app.get("/", status_code=status.HTTP_200_OK)
+def health_check():
+    """Returns basic API status and confirmation of loaded models."""
+    return {
+        "status": "active",
+        "model_loaded": model is not None,
+        "docs_url": "/docs"
+    }
+
+@app.post("/predict", status_code=status.HTTP_200_OK)
+def predict_yield(payload: CropPredictionRequest):
+    """Takes agricultural parameters and returns the predicted crop yield in tons/hectare."""
+    if model is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Model not initialized.")
+    
+    try:
+        processed_matrix = preprocess_input(payload)
+        prediction = model.predict(processed_matrix)[0]
+        return {
+            "prediction_status": "success",
+            "predicted_yield_tons_per_hectare": round(float(prediction), 4),
+            "input_parameters": payload.dict()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Prediction error: {str(e)}")
