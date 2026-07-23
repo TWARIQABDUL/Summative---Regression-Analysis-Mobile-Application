@@ -131,3 +131,43 @@ def predict_yield(payload: CropPredictionRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Prediction error: {str(e)}")
+@app.post("/retrain", status_code=status.HTTP_200_OK)
+def retrain_model(payload: RetrainRequest):
+    """Triggers model updating when new agricultural data is uploaded or streamed."""
+    global model
+    if model is None or scaler is None or feature_names is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Model artifacts missing.")
+
+    try:
+        X_new_list = []
+        y_new_list = []
+
+        # Process each streamed record
+        for record in payload.data:
+            X_scaled = preprocess_input(record)
+            X_new_list.append(X_scaled[0])
+            y_new_list.append(record.Yield_tons_per_hectare)
+
+        X_new_matrix = np.array(X_new_list)
+        y_new_array = np.array(y_new_list)
+
+        # Check if the model supports incremental learning (e.g., SGDRegressor)
+        if hasattr(model, "partial_fit"):
+            model.partial_fit(X_new_matrix, y_new_array)
+            training_mode = "incremental_partial_fit"
+        else:
+            # For standard LinearRegression, refit on the new incoming batch
+            model.fit(X_new_matrix, y_new_array)
+            training_mode = "batch_refit"
+
+        # Overwrite the saved model file with updated weights
+        joblib.dump(model, MODEL_PATH)
+
+        return {
+            "retrain_status": "success",
+            "training_mode": training_mode,
+            "records_processed": len(payload.data),
+            "message": "Model weights updated and saved to disk successfully."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Retraining failed: {str(e)}")
