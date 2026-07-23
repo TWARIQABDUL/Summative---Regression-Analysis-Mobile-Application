@@ -94,7 +94,7 @@ def gradient_descent(x, y, w, b, rate=0.1, epochs=1000000):
         b -= rate * grad_b
         
         # Print progress every 100 epochs to ensure it's not exploding
-        if e % 100000 == 0:
+        if e % 100 == 0:
             # Mean Squared Error (Average of errors squared)
             mse = np.mean(errors ** 2)
             print(f"Epoch {e:4d} | Mean Squared Error: {mse:,.2f}")
@@ -109,5 +109,31 @@ print("\nStarting Gradient Descent on 800,000 rows...")
 final_w, final_b = gradient_descent(X_train_scaled, Y_train, initial_w, initial_b, rate=0.1, epochs=1000)
 
 print("\nTraining Complete!")
-print(f"the weight is {final_w}")
 print(f"Final Bias (Average Phone Price): {final_b:,.2f}")
+
+# ==========================================
+# 8. EVALUATE ON THE TEST SET
+# ==========================================
+print("\n--- TEST SET EVALUATION ---")
+# 1. Make predictions on the 200,000 unseen test rows using our newly learned weights!
+test_guesses = np.dot(X_test_scaled, final_w) + final_b
+
+# 2. Calculate the errors
+test_errors = test_guesses - Y_test
+
+# 3. Calculate Mean Squared Error (MSE)
+test_mse = np.mean(test_errors ** 2)
+
+# 4. Calculate Root Mean Squared Error (RMSE)
+test_rmse = np.sqrt(test_mse)
+
+print(f"Test Mean Squared Error (MSE): {test_mse:,.2f}")
+print(f"Test Root Mean Squared Error (RMSE): {test_rmse:,.2f} currency units")
+
+# Let's peek at the first 5 predictions to see how it did!
+print("\nSample Predictions vs Actual Prices:")
+for i in range(5):
+    predicted = test_guesses[i]
+    actual = Y_test[i]
+    difference = abs(predicted - actual)
+    print(f"Predicted: {predicted:,.2f} | Actual: {actual:,.2f} | Off by: {difference:,.2f}")
