@@ -1,81 +1,113 @@
 import numpy as np
 import pandas as pd
-# df  = pd.read_csv("/dataset/used_phone_price_prediction_1M.csv")
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+print("Loading data...")
 df = pd.read_csv("dataset/used_phone_price_prediction_1M.csv")
 
-print(df.head())
-print(df.columns)
+# ==========================================
+# 1. FEATURE SELECTION (Dropping Noise)
+# ==========================================
+columns_to_drop = [
+    'usage_hours_per_day', 
+    'purchase_year', 
+    'os_type', 
+    'model' 
+]
+df = df.drop(columns=columns_to_drop)
+
+# ==========================================
+# 2. LABEL ENCODING (Ordered Data)
+# ==========================================
+condition_mapping = {'Poor': 0, 'Fair': 1, 'Good': 2, 'Excellent': 3, 'Mint': 4}
+df['condition'] = df['condition'].map(condition_mapping)
+
+tier_mapping = {'Tier3': 0, 'Tier2': 1, 'Tier1': 2} 
+df['city_tier'] = df['city_tier'].map(tier_mapping)
+
+# ==========================================
+# 3. ONE-HOT ENCODING (Unordered Data)
+# ==========================================
+df = pd.get_dummies(df, columns=['brand', 'seller_type'], drop_first=True)
+
+# Convert all columns to float to keep the math engine happy
+df = df.astype(float) 
+
+print("\nData cleaning complete! Here is the new dataset info:")
 print(df.info())
 
-# def gradient_decent(x, y, w, b, rate=0.0001, epochs=10000000):
-#     # Convert standard Python lists into NumPy arrays for lightning-fast math
-#     X = np.array(x)
-#     Y = np.array(y)
-#     W = np.array(w)
-#     m = len(X)
+# ==========================================
+# 4. SEPARATE FEATURES (X) AND TARGET (Y)
+# ==========================================
+# Y is what we want to predict. X is everything else.
+Y = df['resale_price'].values
+X = df.drop(columns=['resale_price']).values
 
-#     for e in range(epochs):
-#         # 1. Calculate guesses for ALL students simultaneously!
-#         # np.dot(X, W) does the (w0*x0 + w1*x1) for every row automatically.
-#         guesses = np.dot(X, W) + b
+print("\nShape of X (Features):", X.shape)
+print("Shape of Y (Target):", Y.shape)
+
+# ==========================================
+# 5. TRAIN / TEST SPLIT
+# ==========================================
+# test_size=0.2 means 20% of the data goes to the test set, 80% to training.
+# random_state=42 ensures we get the exact same random shuffle every time we run the script.
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+print("\nData successfully split!")
+print(f"Training examples: {len(X_train)}")
+print(f"Testing examples:  {len(X_test)}")
+
+# ==========================================
+# 6. FEATURE SCALING (Z-Score)
+# ==========================================
+print("\nScaling features...")
+# Since we are already using scikit-learn, we can use its built-in scaler 
+# instead of writing out the numpy mean/std math manually!
+scaler = StandardScaler()
+
+# 1. We "fit" (calculate mean & std) AND scale the Training data
+X_train_scaled = scaler.fit_transform(X_train)
+
+# 2. We ONLY scale the Testing data using the mean & std we found in the training data
+# We NEVER fit() the scaler on the test data!
+X_test_scaled = scaler.transform(X_test)
+
+# ==========================================
+# 7. TRAIN THE MODEL (Gradient Descent)
+# ==========================================
+def gradient_descent(x, y, w, b, rate=0.1, epochs=1000000):
+    m = len(x)
+    for e in range(epochs):
+        # 1. Predictions for all 800,000 rows at once!
+        guesses = np.dot(x, w) + b
         
-#         # 2. Calculate errors for ALL students simultaneously
-#         errors = guesses - Y
+        # 2. Errors
+        errors = guesses - y
+        
+        # 3. Gradients
+        grad_w = np.dot(x.T, errors) / m
+        grad_b = np.sum(errors) / m
+        
+        # 4. Updates
+        w -= rate * grad_w
+        b -= rate * grad_b
+        
+        # Print progress every 100 epochs to ensure it's not exploding
+        if e % 100000 == 0:
+            # Mean Squared Error (Average of errors squared)
+            mse = np.mean(errors ** 2)
+            print(f"Epoch {e:4d} | Mean Squared Error: {mse:,.2f}")
+            
+    return w, b
 
-#         # 3. Calculate gradients for ALL weights simultaneously
-#         # X.T (Transpose) flips the table to perfectly align the features with the errors
-#         grad_W = np.dot(X.T, errors) / m
-#         grad_b = np.sum(errors) / m
+# We have 28 features now, so we need 28 weights! np.zeros creates an array of 28 zeros.
+initial_w = np.zeros(X_train_scaled.shape[1])
+initial_b = 0.0
 
-#         # 4. Update the weights and bias
-#         W -= rate * grad_W
-#         b -= rate * grad_b
+print("\nStarting Gradient Descent on 800,000 rows...")
+final_w, final_b = gradient_descent(X_train_scaled, Y_train, initial_w, initial_b, rate=0.1, epochs=1000)
 
-#     # Return the final calculated arrays
-#     return W, b
-
-# # [Hours Studied, Attendance %]
-# x_train = [
-#   [12, 90],  # Student 0
-#   [8,  75],  # Student 1
-#   [15, 95],  # Student 2
-#   [5,  60]   # Student 3
-# ]
-
-# # The actual marks stay as a simple 1D list (one answer per student)
-# y_train = [85, 70, 96, 50]
-
-# # 1. Convert to NumPy arrays
-# X = np.array(x_train)
-# Y = np.array(y_train)
-
-# # 2. FEATURE SCALING (Z-Score Normalization)
-# # Find the mean and standard deviation for each column (Hours, Attendance)
-# x_mean = np.mean(X, axis=0) 
-# x_std = np.std(X, axis=0)
-
-# # Scale the training data
-# X_scaled = (X - x_mean) / x_std
-
-# weight = [0.0, 0.0]
-# bias = 0
-
-# # 3. Train using the SCALED data! 
-# # Because the data is scaled, we can safely turn the learning rate WAY up to 0.1
-# final_w, final_b = gradient_decent(X_scaled, Y, weight, bias, rate=0.1, epochs=1000)
-
-# print(f"The scaled weights are: w = {final_w}, b = {final_b:.2f}")
-
-# # ==========================================
-# # 4. PREDICTING FOR A NEW STUDENT
-# # ==========================================
-# # Let's say a new student studies 10 hours with 80% attendance
-# x_new = np.array([15, 95])
-
-# # THE GOLDEN RULE OF SCALING: 
-# # You MUST scale the new student using the EXACT SAME mean and std from your training data!
-# x_new_scaled = (x_new - x_mean) / x_std
-
-# # Predict using the trained weights and the scaled new student
-# prediction = np.dot(final_w, x_new_scaled) + final_b
-# print(f"Predicted mark for {x_new[0]} hours and {x_new[1]}% attendance: {prediction:.2f}")
+print("\nTraining Complete!")
+print(f"the weight is {final_w}")
+print(f"Final Bias (Average Phone Price): {final_b:,.2f}")
