@@ -13,3 +13,16 @@ app = FastAPI(
     description="API for predicting agricultural yields and dynamically retraining regression models.",
     version="1.0.0"
 )
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:8000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
