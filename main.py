@@ -19,6 +19,15 @@ origins = [
     "http://localhost:8000",
 ]
 
+# Adding CORS middleware to specify which origins are allowed to make requests to this API.
+# Reasoning for allowed/restricted policies:
+# - allow_origins: We restrict origins to localhost and known frontend ports for security, 
+#   preventing arbitrary external websites from making requests to this API.
+# - allow_credentials: Set to True to allow cookies or authorization headers if the frontend needs to authenticate.
+# - allow_methods: We explicitly allow "GET" and "POST" since those are the only methods used by our endpoints. 
+#   This prevents unexpected methods (like DELETE or PUT) from being executed.
+# - allow_headers: We allow all headers ("*") to ensure standard content-type headers (like application/json) 
+#   pass through without issues during the request.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

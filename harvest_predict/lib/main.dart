@@ -45,6 +45,8 @@ class _PredictionScreenState extends State<PredictionScreen> {
   bool _irrigationUsed = true;
   
   bool _isLoading = false;
+  String _resultMessage = '';
+  Color _resultColor = Colors.black;
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
@@ -77,12 +79,15 @@ class _PredictionScreenState extends State<PredictionScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final yieldVal = data['predicted_yield_tons_per_hectare'];
-        _showResultDialog('Prediction Success', 'Predicted Yield: $yieldVal tons/hectare');
+        _resultMessage = 'Prediction Success\nPredicted Yield: $yieldVal tons/hectare';
+        _resultColor = Colors.green;
       } else {
-        _showResultDialog('Prediction Error', 'Server returned status: ${response.statusCode}\n${response.body}');
+        _resultMessage = 'Prediction Error\nServer returned status: ${response.statusCode}\n${response.body}';
+        _resultColor = Colors.red;
       }
     } catch (e) {
-      _showResultDialog('Error', 'An error occurred: $e');
+      _resultMessage = 'Error\nAn error occurred: $e';
+      _resultColor = Colors.red;
     } finally {
       setState(() {
         _isLoading = false;
@@ -90,21 +95,6 @@ class _PredictionScreenState extends State<PredictionScreen> {
     }
   }
 
-  void _showResultDialog(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   void dispose() {
@@ -187,8 +177,23 @@ class _PredictionScreenState extends State<PredictionScreen> {
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: const Text('Predict Yield', style: TextStyle(fontSize: 18)),
+                      child: const Text('Predict', style: TextStyle(fontSize: 18)),
                     ),
+              const SizedBox(height: 16),
+              if (_resultMessage.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _resultColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _resultColor),
+                  ),
+                  child: Text(
+                    _resultMessage,
+                    style: TextStyle(color: _resultColor, fontSize: 16, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
             ],
           ),
         ),
