@@ -1,121 +1,197 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const CropYieldPredictorApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class CropYieldPredictorApp extends StatelessWidget {
+  const CropYieldPredictorApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Crop Yield Predictor',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const PredictionScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class PredictionScreen extends StatefulWidget {
+  const PredictionScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<PredictionScreen> createState() => _PredictionScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _PredictionScreenState extends State<PredictionScreen> {
+  final _formKey = GlobalKey<FormState>();
+  
+  // Form controllers initialized with example data
+  final TextEditingController _rainfallCtrl = TextEditingController(text: '750');
+  final TextEditingController _tempCtrl = TextEditingController(text: '25.5');
+  final TextEditingController _daysCtrl = TextEditingController(text: '110');
+  final TextEditingController _regionCtrl = TextEditingController(text: 'North');
+  final TextEditingController _soilCtrl = TextEditingController(text: 'Loam');
+  final TextEditingController _cropCtrl = TextEditingController(text: 'Wheat');
+  final TextEditingController _weatherCtrl = TextEditingController(text: 'Sunny');
 
-  void _incrementCounter() {
+  bool _fertilizerUsed = true;
+  bool _irrigationUsed = true;
+  
+  bool _isLoading = false;
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _isLoading = true;
     });
+
+    try {
+      final Map<String, dynamic> payload = {
+        "Rainfall_mm": double.tryParse(_rainfallCtrl.text) ?? 0.0,
+        "Temperature_Celsius": double.tryParse(_tempCtrl.text) ?? 0.0,
+        "Fertilizer_Used": _fertilizerUsed ? 1 : 0,
+        "Irrigation_Used": _irrigationUsed ? 1 : 0,
+        "Days_to_Harvest": double.tryParse(_daysCtrl.text) ?? 0.0,
+        "Region": _regionCtrl.text,
+        "Soil_Type": _soilCtrl.text,
+        "Crop": _cropCtrl.text,
+        "Weather_Condition": _weatherCtrl.text,
+      };
+
+      final response = await http.post(
+        Uri.parse('https://summative-regression-analysis-mobile.onrender.com/predict'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final yieldVal = data['predicted_yield_tons_per_hectare'];
+        _showResultDialog('Prediction Success', 'Predicted Yield: $yieldVal tons/hectare');
+      } else {
+        _showResultDialog('Prediction Error', 'Server returned status: ${response.statusCode}\n${response.body}');
+      }
+    } catch (e) {
+      _showResultDialog('Error', 'An error occurred: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showResultDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _rainfallCtrl.dispose();
+    _tempCtrl.dispose();
+    _daysCtrl.dispose();
+    _regionCtrl.dispose();
+    _soilCtrl.dispose();
+    _cropCtrl.dispose();
+    _weatherCtrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
+        title: const Text('Predict Crop Yield'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              TextFormField(
+                controller: _rainfallCtrl,
+                decoration: const InputDecoration(labelText: 'Rainfall (mm)'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _tempCtrl,
+                decoration: const InputDecoration(labelText: 'Temperature (°C)'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+              ),
+              SwitchListTile(
+                title: const Text('Fertilizer Used'),
+                value: _fertilizerUsed,
+                onChanged: (val) => setState(() => _fertilizerUsed = val),
+              ),
+              SwitchListTile(
+                title: const Text('Irrigation Used'),
+                value: _irrigationUsed,
+                onChanged: (val) => setState(() => _irrigationUsed = val),
+              ),
+              TextFormField(
+                controller: _daysCtrl,
+                decoration: const InputDecoration(labelText: 'Days to Harvest'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _regionCtrl,
+                decoration: const InputDecoration(labelText: 'Region'),
+                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _soilCtrl,
+                decoration: const InputDecoration(labelText: 'Soil Type'),
+                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _cropCtrl,
+                decoration: const InputDecoration(labelText: 'Crop'),
+                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: _weatherCtrl,
+                decoration: const InputDecoration(labelText: 'Weather Condition'),
+                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+              ),
+              const SizedBox(height: 24),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                      onPressed: _submitForm,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Predict Yield', style: TextStyle(fontSize: 18)),
+                    ),
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
