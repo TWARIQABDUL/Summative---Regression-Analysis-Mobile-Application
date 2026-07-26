@@ -94,15 +94,30 @@ class _PredictionScreenState extends State<PredictionScreen> {
   }
 
   void _showResultDialog(bool success, String message) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SizedBox(
+        height: MediaQuery.of(ctx).size.height * 0.5,
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // A small drag handle for better UX
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -112,7 +127,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 child: Icon(
                   success ? Icons.check_circle_outline : Icons.error_outline,
                   color: success ? Colors.green : Colors.red,
-                  size: 48,
+                  size: 56,
                 ),
               ),
               const SizedBox(height: 24),
@@ -127,7 +142,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                 Text(
                   '$message Tons/Ha',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 32,
                     fontWeight: FontWeight.w800,
                     color: Theme.of(context).colorScheme.primary,
                   ),
@@ -139,7 +154,7 @@ class _PredictionScreenState extends State<PredictionScreen> {
                   style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ],
-              const SizedBox(height: 24),
+              const Spacer(),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
@@ -150,7 +165,8 @@ class _PredictionScreenState extends State<PredictionScreen> {
                   onPressed: () => Navigator.pop(ctx),
                   child: const Text('Done', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-              )
+              ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
