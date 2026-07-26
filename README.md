@@ -1,8 +1,8 @@
 # Regression Analysis Mobile Application
 
 ## Mission and Problem Description
-**Mission:** Predict agricultural crop yields to help farmers optimize their resources and improve food security.
-**Problem:** Crop yield depends on multiple complex variables (e.g., rainfall, temperature, soil type). Manually predicting yield is difficult and error-prone. This project builds a linear regression model to predict yield based on these factors, enabling data-driven agricultural decisions.
+**Mission:**Digitizing agriculture and improving food security.
+**Problem:** Agriculture yield depends on multiple complex variables (e.g., rainfall, temperature, soil type). Manually predicting yield is difficult and error-prone. This project builds a linear regression model to predict yield based on these factors, enabling data-driven agricultural decisions.
 
 ## Dataset Description and Source
 The dataset used for this project is specific to regression analysis for crop yields. It contains various features such as Rainfall (mm), Temperature (°C), Fertilizer & Irrigation usage, Days to Harvest, Region, Soil Type, and Weather Conditions, which are used to predict the `Yield_tons_per_hectare`.
@@ -11,7 +11,7 @@ The dataset used for this project is specific to regression analysis for crop yi
 ## Submission Details
 
 ### Video Demo (7 Minutes)
-*Link to YouTube video:* `[INSERT YOUTUBE LINK HERE]`
+*Link to YouTube video:* [https://youtu.be/bQXy2Z5sAsE](https://youtu.be/bQXy2Z5sAsE)
 
 ### Swagger UI URL
 The publicly available URL that redirects you to the Swagger UI is:
